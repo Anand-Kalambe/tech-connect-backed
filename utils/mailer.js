@@ -2,17 +2,15 @@ const nodemailer = require('nodemailer');
 
 /**
  * Nodemailer transporter.
- * Uses Gmail with App Password (SMTP_USER / SMTP_PASS from .env).
- * For other providers change host/port accordingly.
+ * Explicitly using the SMTP host and port to prevent Render ETIMEDOUT errors.
  */
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, // true for 465, false for other ports
-  requireTLS: true,
+  host: 'smtp.gmail.com', // Explicitly define the host
+  port: 465,              // Use port 465 for secure connection
+  secure: true,           // true for port 465
   auth: {
     user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS, // Gmail App Password (not your normal password)
+    pass: process.env.SMTP_PASS, 
   },
 });
 
@@ -43,7 +41,6 @@ async function sendOTPEmail(to, otp, name = '') {
       <td align="center">
         <table width="100%" style="max-width:520px;background:#0f1422;border:1px solid rgba(37,99,235,0.25);border-radius:20px;overflow:hidden;">
 
-          <!-- Header -->
           <tr>
             <td style="background:linear-gradient(135deg,#1d4ed8,#2563eb,#3b82f6);padding:32px;text-align:center;">
               <div style="font-size:40px;margin-bottom:8px;">💼</div>
@@ -52,7 +49,6 @@ async function sendOTPEmail(to, otp, name = '') {
             </td>
           </tr>
 
-          <!-- Body -->
           <tr>
             <td style="padding:32px 32px 24px;">
               <p style="margin:0 0 8px;font-size:15px;color:#94a3b8;">Hello, <strong style="color:#f0f4ff;">${displayName}</strong> 👋</p>
@@ -61,14 +57,12 @@ async function sendOTPEmail(to, otp, name = '') {
                 Use the code below — it's valid for <strong style="color:#f0f4ff;">10 minutes</strong>.
               </p>
 
-              <!-- OTP Box -->
               <div style="background:rgba(37,99,235,0.1);border:2px solid rgba(37,99,235,0.4);border-radius:16px;padding:28px;text-align:center;margin-bottom:28px;">
                 <p style="margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:0.1em;color:#64748b;text-transform:uppercase;">Your Verification Code</p>
                 <div style="font-size:44px;font-weight:900;letter-spacing:12px;color:#3b82f6;font-family:monospace;">${otp}</div>
                 <p style="margin:10px 0 0;font-size:11px;color:#64748b;">Expires in 10 minutes</p>
               </div>
 
-              <!-- Security note -->
               <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:14px 16px;">
                 <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.6;">
                   🔒 <strong style="color:#fbbf24;">Security tip:</strong> Never share this code with anyone.
@@ -78,7 +72,6 @@ async function sendOTPEmail(to, otp, name = '') {
             </td>
           </tr>
 
-          <!-- Footer -->
           <tr>
             <td style="padding:16px 32px 28px;border-top:1px solid rgba(255,255,255,0.06);">
               <p style="margin:0;font-size:12px;color:#475569;text-align:center;">
@@ -97,7 +90,13 @@ async function sendOTPEmail(to, otp, name = '') {
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`OTP Email successfully sent to ${to}`);
+  } catch (error) {
+    console.error(`Failed to send OTP to ${to}:`, error);
+    throw error; // Rethrow if you want your route handler to catch it and send a 500 status to the frontend
+  }
 }
 
 module.exports = { sendOTPEmail };
