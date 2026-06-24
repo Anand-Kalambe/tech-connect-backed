@@ -5,13 +5,18 @@ const nodemailer = require('nodemailer');
  * Explicitly using the SMTP host and port to prevent Render ETIMEDOUT errors.
  */
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com', // Explicitly define the host
-  port: 465,              // Use port 465 for secure connection
-  secure: true,           // true for port 465
+  host: 'smtp.gmail.com',
+  port: 587,           // Changed from 465 to 587
+  secure: false,       // MUST be false when using port 587
+  requireTLS: true,    // Forces the connection to upgrade to secure TLS
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS, 
   },
+  tls: {
+    // Helps bypass certain strict certificate blocks on cloud providers
+    rejectUnauthorized: false 
+  }
 });
 
 /**
