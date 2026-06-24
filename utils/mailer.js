@@ -1,20 +1,23 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns'); // 1. Import the built-in DNS module
+
+// 2. FORCE Node.js to use IPv4 for all network requests.
+// This completely bypasses the Render IPv6 ENETUNREACH error.
+dns.setDefaultResultOrder('ipv4first');
 
 /**
  * Nodemailer transporter.
- * Explicitly using the SMTP host and port to prevent Render ETIMEDOUT errors.
  */
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,           // Changed from 465 to 587
-  secure: false,       // MUST be false when using port 587
-  requireTLS: true,    // Forces the connection to upgrade to secure TLS
+  host: 'smtp.gmail.com', 
+  port: 587,              
+  secure: false,          
+  requireTLS: true,       
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS, 
   },
   tls: {
-    // Helps bypass certain strict certificate blocks on cloud providers
     rejectUnauthorized: false 
   }
 });
@@ -100,7 +103,7 @@ async function sendOTPEmail(to, otp, name = '') {
     console.log(`OTP Email successfully sent to ${to}`);
   } catch (error) {
     console.error(`Failed to send OTP to ${to}:`, error);
-    throw error; // Rethrow if you want your route handler to catch it and send a 500 status to the frontend
+    throw error; 
   }
 }
 
