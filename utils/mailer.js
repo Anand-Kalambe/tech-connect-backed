@@ -1,26 +1,5 @@
 const nodemailer = require('nodemailer');
-const dns = require('dns'); // 1. Import the built-in DNS module
-
-// 2. FORCE Node.js to use IPv4 for all network requests.
-// This completely bypasses the Render IPv6 ENETUNREACH error.
-dns.setDefaultResultOrder('ipv4first');
-
-/**
- * Nodemailer transporter.
- */
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com', 
-  port: 587,              
-  secure: false,          
-  requireTLS: true,       
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS, 
-  },
-  tls: {
-    rejectUnauthorized: false 
-  }
-});
+const dns = require('dns').promises; // Use the promises version of dns
 
 /**
  * Send an OTP email to the given address.
@@ -30,6 +9,30 @@ const transporter = nodemailer.createTransport({
  */
 async function sendOTPEmail(to, otp, name = '') {
   const displayName = name || to.split('@')[0];
+
+  // --- THE NUCLEAR FIX FOR RENDER IPv6 ---
+  // 1. Manually force Node to resolve only the IPv4 addresses for Gmail
+  const addresses = await dns.resolve4('smtp.gmail.com');
+  const ipv4Host = addresses[0]; // Grab the first guaranteed IPv4 address
+
+  // 2. Create the transporter using the raw IP address to completely bypass the IPv6 block
+  const transporter = nodemailer.createTransport({
+    host: ipv4Host, 
+    port: 587,
+    secure: false,
+    requireTLS: true,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS, 
+    },
+    tls: {
+      // Crucial: We must tell Google we are looking for 'smtp.gmail.com' 
+      // otherwise their SSL certificate will reject the raw IP address.
+      servername: 'smtp.gmail.com', 
+      rejectUnauthorized: false
+    }
+  });
+  // ---------------------------------------
 
   const mailOptions = {
     from: `"Tech Connect" <${process.env.SMTP_USER}>`,
@@ -100,7 +103,7 @@ async function sendOTPEmail(to, otp, name = '') {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`OTP Email successfully sent to ${to}`);
+    console.log(`OTP Email successfully sent to ${to} via ${ipv4Host}`);
   } catch (error) {
     console.error(`Failed to send OTP to ${to}:`, error);
     throw error; 
