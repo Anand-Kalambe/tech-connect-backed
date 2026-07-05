@@ -21,6 +21,7 @@
     "mongoose": "^9.7.1",
     "multer": "^2.2.0",
     "multer-storage-cloudinary": "^4.0.0",
-    "nodemailer": "^9.0.1"
+    "nodemailer": "^9.0.1",
+    "resend": "^6.17.1"
   }
 }
