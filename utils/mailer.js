@@ -1,27 +1,19 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 /**
  * Send OTP Email
- * @param {string} to
- * @param {string} otp
- * @param {string} name
  */
 async function sendOTPEmail(to, otp, name = "") {
   const displayName = name || to.split("@")[0];
 
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.SMTP_USER, // or EMAIL_USER if that's what you're using
-      pass: process.env.SMTP_PASS, // or EMAIL_PASS
-    },
-  });
-
-  const mailOptions = {
-    from: `"Tech Connect" <${process.env.SMTP_USER}>`,
-    to,
-    subject: "🔐 Your Tech Connect Verification Code",
-    html: `
+  try {
+    const { data, error } = await resend.emails.send({
+      from: "Tech Connect <onboarding@resend.dev>",
+      to,
+      subject: "🔐 Your Tech Connect Verification Code",
+      html: `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -79,17 +71,18 @@ ${otp}
 </body>
 </html>
 `,
-  };
+    });
 
-  try {
-    const info = await transporter.sendMail(mailOptions);
+    if (error) {
+      console.error(error);
+      throw error;
+    }
 
-    console.log("✅ Email sent successfully");
-    console.log(info.response);
+    console.log("✅ Email Sent");
+    console.log(data);
 
-    return info;
+    return data;
   } catch (err) {
-    console.error("❌ Email sending failed");
     console.error(err);
     throw err;
   }
